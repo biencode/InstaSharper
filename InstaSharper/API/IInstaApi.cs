@@ -308,6 +308,31 @@ namespace InstaSharper.API
         Task<IResult<InstaStoryMedia>> ConfigureStoryPhotoAsync(InstaImage image, string uploadId, string caption);
 
         /// <summary>
+        /// Upload video to Instagram
+        /// </summary>
+        /// <param name="video">video to uplaod</param>
+        /// <param name="caption">Caption</param>
+        /// <returns></returns>
+        Task<IResult<InstaMedia>> UploadVideoAsync(InstaVideo video, string caption);
+
+        /// <summary>
+        /// Upload story video to Instagram
+        /// </summary>
+        /// <param name="video">video to uplaod</param>
+        /// <param name="caption">Caption</param>
+        /// <returns></returns>
+        Task<IResult<InstaStoryMedia>> UploadStoryVideoAsync(InstaVideo video, string caption);
+
+        /// <summary>
+        /// Configure story video
+        /// </summary>
+        /// <param name="video">Video to uplaod</param>
+        /// <param name="uploadId">Upload id </param>
+        /// <param name="caption">Caption</param>
+        /// <returns></returns>
+        IResult<InstaStoryMedia> ConfigureStoryVideoAsync(InstaVideo video, string uploadId, string caption);
+
+        /// <summary>
         ///     Change password
         /// </summary>
         /// <param name="oldPassword">The old password</param>

@@ -6,6 +6,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InstaSharper", "InstaSharpe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InstaSharper.Tests", "InstaSharper.Tests\InstaSharper.Tests.csproj", "{DBE6FBB7-CDE7-4CDF-AB08-989A43CC4D46}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UploadVideoApp", "UploadVideoApp\UploadVideoApp.csproj", "{921AA8CE-4546-4988-B2A2-8C2211E51099}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

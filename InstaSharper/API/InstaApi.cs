@@ -1131,6 +1131,353 @@ namespace InstaSharper.API
             }
         }
 
+        public async Task<IResult<InstaMedia>> UploadVideoAsync(InstaVideo video, string caption)
+        {
+            ValidateUser();
+            ValidateLoggedIn();
+            string uploadId = ApiRequestMessage.GenerateUploadId();
+            string uuId = _deviceInfo.DeviceGuid.ToString();
+            var webClient = new WebClient();
+            byte[] videoData = webClient.DownloadData(video.Url);
+            Uri uploadVideoUri = UriCreator.GetUploadVideoUri();
+
+            var requestContent = new MultipartFormDataContent(uploadId)
+            {
+                {new StringContent(uploadId), "\"upload_id\""},
+                {new StringContent(_deviceInfo.DeviceGuid.ToString()), "\"_uuid\""},
+                {new StringContent(_user.CsrfToken), "\"_csrftoken\""},
+                {new StringContent(video.Type.ToString()),"\"media_type\""}
+            };
+
+            var request = HttpHelper.GetDefaultRequest(HttpMethod.Post, uploadVideoUri, _deviceInfo);
+            request.Content = requestContent;
+            var response = await _httpRequestProcessor.SendAsync(request);
+
+            try
+            {
+                string jsonContent = await response.Content.ReadAsStringAsync();
+                JObject node = JObject.Parse(jsonContent);
+
+                if (node == null)
+                {
+                    throw new ArgumentNullException();
+                }
+
+                if (node.TryGetValue("video_upload_urls", StringComparison.CurrentCulture, out JToken value))
+                {
+                    dynamic urls = value;
+                    if (urls.Count <= 0)
+                    {
+                        throw new ArgumentNullException();
+                    }
+
+                    // string url = urls[3].url.Replace("\\u0026", "&").Replace("\\", "");
+                    // string job = urls[3].job;
+
+                    if (string.IsNullOrEmpty((string)urls[3].url) || string.IsNullOrEmpty((string)urls[3].job))
+                    {
+                        throw new ArgumentNullException();
+                    }
+
+                    long chunk = Convert.ToInt64(Math.Floor(videoData.Length / 4.0));
+                    long last = (videoData.Length - (chunk * 4));
+                    List<byte> data = videoData.ToList();
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        long start = (i * chunk);
+
+                        long end = ((i + 1) * chunk) + ((i == 3) ? last : 0);
+
+                        #region Upload chunk
+
+                        Uri chunkUri = new Uri((string)urls[i].url);
+
+                        var uploadChunkRequestContent = new MultipartFormDataContent(uploadId)
+                        {
+                            {new StringContent("$Version=1"), "\"Cookie2\""},
+                            {new StringContent(uploadId), "\"Session-ID\""},
+                            {new StringContent((string)urls[i].job),"\"job\""}
+                        };
+
+                        byte[] chunkData = data.GetRange((int)start, (int)(end - start)).ToArray();
+                        var chunkContent = new ByteArrayContent(chunkData);
+                        chunkContent.Headers.Add("Content-Transfer-Encoding", "binary");
+                        chunkContent.Headers.Add("Content-Type", "application/octet-stream");
+                        chunkContent.Headers.Add("Content-Length", (end - start).ToString());
+                        chunkContent.Headers.Add("Content-Disposition", "attachment; filename=\"testvideo2.mp4\"");
+                        chunkContent.Headers.Add("Content-Range", $"bytes {start}-{end - 1}/{videoData.Length}");
+                        uploadChunkRequestContent.Add(chunkContent, "testvideo2", $"pending_media_{ApiRequestMessage.GenerateUploadId()}.mov");
+                        var uploadChunkRequest = HttpHelper.GetDefaultRequest(HttpMethod.Post, chunkUri, _deviceInfo);
+                        uploadChunkRequest.Content = uploadChunkRequestContent;
+                        var uploadChunkResponse = await _httpRequestProcessor.SendAsync(uploadChunkRequest);
+                        var result = await uploadChunkResponse.Content.ReadAsStringAsync();
+                        if (uploadChunkResponse.IsSuccessStatusCode)
+                        {
+                            continue;
+                        }
+
+                        return Result.UnExpectedResponse<InstaMedia>(uploadChunkResponse, result);
+
+
+                        // HttpWebRequest chunk_request = (HttpWebRequest)WebRequest.Create(chunkUri);
+                        // chunk_request.Method = "POST";
+                        // chunk_request.Host = "upload.instagram.com";
+                        // chunk_request.Accept = "*/*";
+                        //  chunk_request.Headers.Add("Cookie2", "$Version=1");
+                        //chunk_request.ContentType = "application/octet-stream";
+                        //  chunk_request.ContentLength = end - start;
+                        // chunk_request.Headers.Add("Session-ID", uploadId);
+                        //  chunk_request.Headers.Add("Content-Disposition", "attachment; filename=\"child_video.mp4\"");
+                        // chunk_request.UserAgent = InstaApiConstants.USER_AGENT;
+                        //chunk_request.UseDefaultCredentials = true;
+                        //chunk_request.Headers.Add("Content-Range", $"bytes {start}-{end - 1}/{videoData.Length}");
+                        //chunk_request.Headers.Add("job", (string)urls[i].job);
+                        //chunk_request.AllowAutoRedirect = false;
+                        // chunk_request.CookieContainer = new CookieContainer();
+                        //chunk_request.CookieContainer.Add(chunkUri, _httpRequestProcessor.HttpHandler.CookieContainer.GetCookies(chunkUri));
+                        //chunk_request.KeepAlive = true;
+
+                        //byte[] chunkData = data.GetRange((int)start, (int)(end - start)).ToArray();
+
+                        //using (Stream chunk_stream = chunk_request.GetRequestStream())
+                        //{
+                        //    chunk_stream.Write(chunkData, 0, chunkData.Length);
+                        //}
+
+                        //HttpWebResponse chunk_response = (HttpWebResponse)chunk_request.GetResponse();
+
+                        //chunk_response.Close();
+                        #endregion
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                return Result.Fail(exception.Message, (InstaMedia)null);
+            }
+
+            return Result.Success("success", (InstaMedia)null);
+
+            // uplao9d preview
+
+            //Uri uri = new Uri(HttpUrl + "upload/photo/");
+            //HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
+            //request.Method = "POST";
+            //request.UserAgent = UserAgent;
+            //request.Host = "i.instagram.com";
+            //request.Accept = "*/*";
+            //request.ContentType = $"multipart/form-data; boundary={uuid}";
+            //request.Headers.Add("Cookie2", "$Version=1");
+            //request.UseDefaultCredentials = true;
+            //request.AllowAutoRedirect = false;
+            //request.CookieContainer = new CookieContainer();
+            //request.CookieContainer.Add(uri, _cookies);
+            //request.KeepAlive = true;
+
+            //string data = string.Empty;
+
+            //data += $"\r\n\r\n--{uuid}\r\n";
+            //data += $"Content-Disposition: form-data; name=\"upload_id\"\r\n";
+            //data += $"\r\n";
+            //data += $"{upload_id}\r\n";
+            //data += $"--{uuid}\r\n";
+            //data += $"Content-Disposition: form-data; name=\"_uuid\"\r\n";
+            //data += $"\r\n";
+            //data += $"{uuid}\r\n";
+            //data += $"--{uuid}\r\n";
+            //data += $"Content-Disposition: form-data; name=\"_csrftoken\"\r\n";
+            //data += $"\r\n";
+            //data += $"{_csrftoken}\r\n";
+            //data += $"--{uuid}\r\n";
+            //data += $"Content-Disposition: form-data; name=\"image_compression\"\r\n";
+            //data += $"\r\n";
+            //data += "{\"lib_name\":\"jt\",\"lib_version\":\"1.3.0\",\"quality\":\"100\"}\r\n";
+            //data += $"--{uuid}\r\n";
+            //data += $"Content-Disposition: form-data; name=\"photo\"; filename=\"pending_media_{upload_id}.jpg\"\r\n";
+            //data += $"Content-Type: application/octet-stream\r\n";
+            //data += $"Content-Transfer-Encoding: binary\r\n\r\n";
+
+            //byte[] begin_block = Encoding.UTF8.GetBytes(data);
+
+            //byte[] end_block = Encoding.UTF8.GetBytes($"\r\n--{uuid}--");
+
+            //request.ContentLength = (begin_block.Length + previewData.Length + end_block.Length);
+
+            //try
+            //{
+            //    using (var stream = request.GetRequestStream())
+            //    {
+            //        stream.Write(begin_block, 0, begin_block.Length);
+            //        stream.Write(previewData, 0, previewData.Length);
+            //        stream.Write(end_block, 0, end_block.Length);
+            //    }
+            //}
+            //catch
+            //{
+            //    return null;
+            //}
+
+            //try
+            //{
+            //    HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+
+            //    response.Close();
+            //}
+            //catch
+            //{
+            //    return null;
+            //}
+
+            // configure video
+
+            //string configure = $"{{\"caption\":\"{caption}\",\"upload_id\":\"{uploadId}\",\"source_type\":\"3\", \"camera_position\":\"unknown\",\"extra\":{{\"source_width\":1280,\"source_height\":720}},\"clips\":[{{\"length\":10.0,\"creation_date\" :\"2016-04-09T19:03:32-0700\",\"source_type\":\"3\",\"camera_position\":\"back\"}}],\"poster_frame_index\":0,\"audio_muted\":false,\"filter_type\":\"0\",\"video_result\":\"deprecated\",\"_csrftoken\":\"{_user.CsrfToken}\",\"_uuid\":\"{uuId}\",\"_uid\":\"{_user.LoggedInUder.Pk}\"}}";
+            //var signature = $"{_httpRequestProcessor.RequestMessage.GenerateSignature(configure)}.{_httpRequestProcessor.RequestMessage.GetMessageString()}";
+            //byte[] signed = Encoding.UTF8.GetBytes("signed_body=" + Uri.EscapeDataString(signature + "." + configure) + "&ig_sig_key_version=4");
+
+            //Uri uri = new Uri("https://media/configure/?video=1");
+
+            //HttpWebRequest configureRequest = (HttpWebRequest)WebRequest.Create(uri);
+            //configureRequest.Method = "POST";
+            //configureRequest.UserAgent = InstaApiConstants.USER_AGENT;
+            //configureRequest.Host = "i.instagram.com";
+            //configureRequest.Accept = "*/*";
+            //configureRequest.CookieContainer = new CookieContainer();
+            //configureRequest.CookieContainer.Add(uri, _httpRequestProcessor.HttpHandler.CookieContainer.GetCookies(uri));
+            //configureRequest.ContentLength = signed.Length;
+
+            //try
+            //{
+            //    using (Stream stream = request.GetRequestStream())
+            //    {
+            //        stream.Write(signed, 0, signed.Length);
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    return ex.Message;
+            //}
+
+            //try
+            //{
+            //    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+            //    {
+            //        using (Stream stream = response.GetResponseStream())
+            //        {
+            //            using (StreamReader reader = new StreamReader(stream))
+            //            {
+            //                return reader.ReadToEnd();
+            //            }
+            //        }
+            //    }
+            //}
+            //catch (WebException e)
+            //{
+            //    var resp = new StreamReader(e.Response.GetResponseStream()).ReadToEnd();
+            //    return resp;
+            //}
+        }
+
+        public async Task<IResult<InstaStoryMedia>> UploadStoryVideoAsync(InstaVideo video, string caption)
+        {
+            ValidateUser();
+            ValidateLoggedIn();
+            string uploadId = ApiRequestMessage.GenerateUploadId();
+            string uuId = _deviceInfo.DeviceGuid.ToString();
+            var webClient = new WebClient();
+            byte[] videoData = webClient.DownloadData(video.Url);
+            Uri uploadVideoUri = UriCreator.GetUploadVideoUri();
+
+            var requestContent = new MultipartFormDataContent(uploadId)
+            {
+                {new StringContent(uploadId), "\"upload_id\""},
+                {new StringContent(_deviceInfo.DeviceGuid.ToString()), "\"_uuid\""},
+                {new StringContent(_user.CsrfToken), "\"_csrftoken\""},
+                {new StringContent(video.Type.ToString()),"\"media_type\""}
+            };
+
+            var request = HttpHelper.GetDefaultRequest(HttpMethod.Post, uploadVideoUri, _deviceInfo);
+            request.Content = requestContent;
+            var response = await _httpRequestProcessor.SendAsync(request);
+
+            try
+            {
+                string jsonContent = await response.Content.ReadAsStringAsync();
+                JObject node = JObject.Parse(jsonContent);
+
+                if (node == null)
+                {
+                    throw new ArgumentNullException();
+                }
+
+                if (node.TryGetValue("video_upload_urls", StringComparison.CurrentCulture, out JToken value))
+                {
+                    dynamic urls = value;
+                    if (urls.Count <= 0)
+                    {
+                        throw new ArgumentNullException();
+                    }
+
+                    if (string.IsNullOrEmpty((string)urls[3].url) || string.IsNullOrEmpty((string)urls[3].job))
+                    {
+                        throw new ArgumentNullException();
+                    }
+
+                    long chunk = Convert.ToInt64(Math.Floor(videoData.Length / 4.0));
+                    long last = (videoData.Length - (chunk * 4));
+                    List<byte> data = videoData.ToList();
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        long start = (i * chunk);
+                        long end = ((i + 1) * chunk) + ((i == 3) ? last : 0);
+
+                        #region Upload chunk
+
+                        Uri chunkUri = new Uri((string)urls[i].url);
+
+                        var uploadChunkRequestContent = new MultipartFormDataContent(uploadId)
+                        {
+                            {new StringContent("$Version=1"), "\"Cookie2\""},
+                            {new StringContent(uploadId), "\"Session-ID\""},
+                            {new StringContent((string)urls[i].job),"\"job\""}
+                        };
+
+                        byte[] chunkData = data.GetRange((int)start, (int)(end - start)).ToArray();
+                        var chunkContent = new ByteArrayContent(chunkData);
+                        chunkContent.Headers.Add("Content-Transfer-Encoding", "binary");
+                        chunkContent.Headers.Add("Content-Type", "application/octet-stream");
+                        chunkContent.Headers.Add("Content-Length", (end - start).ToString());
+                        chunkContent.Headers.Add("Content-Disposition", "attachment; filename=\"testvideo2.mp4\"");
+                        chunkContent.Headers.Add("Content-Range", $"bytes {start}-{end - 1}/{videoData.Length}");
+                        uploadChunkRequestContent.Add(chunkContent, "testvideo2", $"pending_media_{ApiRequestMessage.GenerateUploadId()}.mp4");
+                        var uploadChunkRequest = HttpHelper.GetDefaultRequest(HttpMethod.Post, chunkUri, _deviceInfo);
+                        uploadChunkRequest.Content = uploadChunkRequestContent;
+                        var uploadChunkResponse = await _httpRequestProcessor.SendAsync(uploadChunkRequest);
+                        var result = await uploadChunkResponse.Content.ReadAsStringAsync();
+                        if (uploadChunkResponse.IsSuccessStatusCode)
+                        {
+                            continue;
+                        }
+
+                        return Result.UnExpectedResponse<InstaStoryMedia>(uploadChunkResponse, result);
+                        #endregion
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                return Result.Fail(exception.Message, (InstaStoryMedia)null);
+            }
+
+            return ConfigureStoryVideoAsync(video, uploadId, caption);
+        }
+
+        public IResult<InstaStoryMedia> ConfigureStoryVideoAsync(InstaVideo video, string uploadId, string caption)
+        {
+            return Result.Fail("", (InstaStoryMedia)null);
+        }
+
         public async Task<IResult<bool>> ChangePasswordAsync(string oldPassword, string newPassword)
         {
             ValidateUser();

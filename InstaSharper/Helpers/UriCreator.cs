@@ -284,6 +284,14 @@ namespace InstaSharper.Helpers
             return instaUri;
         }
 
+        public static Uri GetUploadVideoUri()
+        {
+            if (
+                !Uri.TryCreate(BaseInstagramUri, InstaApiConstants.UPLOAD_VIDEO, out var instaUri))
+                throw new Exception("Cant create URI for upload video");
+            return instaUri;
+        }
+
         public static Uri GetMediaConfigureUri()
         {
             if (
