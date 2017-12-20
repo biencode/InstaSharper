@@ -1378,7 +1378,7 @@ namespace InstaSharper.API
             //}
         }
 
-        public async Task<IResult<InstaStoryMedia>> UploadStoryVideoAsync(InstaVideo video, string caption)
+        public async Task<IResult<InstaStoryMedia>> UploadStoryVideoAsync(InstaVideo video, InstaImage thumbnail, string caption)
         {
             ValidateUser();
             ValidateLoggedIn();
@@ -1450,7 +1450,7 @@ namespace InstaSharper.API
                         chunkContent.Headers.Add("Content-Length", (end - start).ToString());
                         chunkContent.Headers.Add("Content-Disposition", "attachment; filename=\"testvideo2.mp4\"");
                         chunkContent.Headers.Add("Content-Range", $"bytes {start}-{end - 1}/{videoData.Length}");
-                        uploadChunkRequestContent.Add(chunkContent, "testvideo2", $"pending_media_{ApiRequestMessage.GenerateUploadId()}.mp4");
+                        uploadChunkRequestContent.Add(chunkContent, "testvideo2", $"pending_media_{uploadId}.mp4");
                         var uploadChunkRequest = HttpHelper.GetDefaultRequest(HttpMethod.Post, chunkUri, _deviceInfo);
                         uploadChunkRequest.Content = uploadChunkRequestContent;
                         var uploadChunkResponse = await _httpRequestProcessor.SendAsync(uploadChunkRequest);
@@ -1463,6 +1463,8 @@ namespace InstaSharper.API
                         return Result.UnExpectedResponse<InstaStoryMedia>(uploadChunkResponse, result);
                         #endregion
                     }
+
+                    var uploadThumbnailResult = await UploadVideoThumbnail(thumbnail, uploadId);
                 }
             }
             catch (Exception exception)
@@ -1470,8 +1472,46 @@ namespace InstaSharper.API
                 return Result.Fail(exception.Message, (InstaStoryMedia)null);
             }
 
-            
             return await ConfigureStoryVideoAsync(video, uploadId, caption);
+        }
+
+        private async Task<IResult<InstaMedia>> UploadVideoThumbnail(InstaImage thumbnail, string uploadId)
+        {
+            try
+            {
+                var instaUri = UriCreator.GetUploadPhotoUri();
+                var requestContent = new MultipartFormDataContent(uploadId)
+                {
+                    {new StringContent("$Version=1"), "\"Cookie2\""},
+                    {new StringContent(uploadId), "\"upload_id\""},
+                    {new StringContent(_deviceInfo.DeviceGuid.ToString()), "\"_uuid\""},
+                    {new StringContent(_user.CsrfToken), "\"_csrftoken\""},
+                    {
+                        new StringContent("{\"lib_name\":\"jt\",\"lib_version\":\"1.3.0\",\"quality\":\"87\"}"),
+                        "\"image_compression\""
+                    }
+                };
+                var imageContent = new ByteArrayContent(File.ReadAllBytes(thumbnail.URI));
+                imageContent.Headers.Add("Content-Transfer-Encoding", "binary");
+                imageContent.Headers.Add("Content-Type", "application/octet-stream");
+                requestContent.Add(imageContent, "photo", $"pending_media_{uploadId}.jpg");
+                var request = HttpHelper.GetDefaultRequest(HttpMethod.Post, instaUri, _deviceInfo);
+                request.Content = requestContent;
+                var response = await _httpRequestProcessor.SendAsync(request);
+                var json = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    var mediaResponse = JsonConvert.DeserializeObject<InstaMediaItemResponse>(json);
+                    var converter = ConvertersFabric.GetSingleMediaConverter(mediaResponse);
+                    return Result.Success(converter.Convert());
+                }
+                  
+                return Result.UnExpectedResponse<InstaMedia>(response, json);
+            }
+            catch (Exception exception)
+            {
+                return Result.Fail(exception.Message, (InstaMedia)null);
+            }
         }
 
         public async Task<IResult<InstaStoryMedia>> ConfigureStoryVideoAsync(InstaVideo video, string uploadId, string caption)
@@ -1481,18 +1521,48 @@ namespace InstaSharper.API
             try
             {
                 var instaUri = UriCreator.GetStoryVideoConfigureUri();
+                var androidVersion = AndroidVersion.FromString(_deviceInfo.FirmwareFingerprint.Split('/')[2].Split(':')[1]);
+                if (androidVersion == null)
+                {
+                    return Result.Fail("Unsupported android version", (InstaStoryMedia)null);
+                }
+
+                double currentTime = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+                Random numberGenerator = new Random();
+
                 var data = new JObject
                 {
-                    {"_uuid", _deviceInfo.DeviceGuid.ToString()},
-                    {"_uid", _user.LoggedInUder.Pk},
-                    {"_csrftoken", _user.CsrfToken},
-                    {"source_type", "4"},
-                    {"caption", caption},
+                    { "video_result", "deprecated"},
                     {"upload_id", uploadId},
-                    {"edits", new JObject()},
-                    {"disable_comments", false},
+                    { "poster_frame_index", 0},
+                    { "length", 5 },
+                    { "audio_muted", false },
+                    { "filter_type", 0},
+                    { "source_type", 4},
+                    {
+                        "device", new JObject
+                        {
+                            {"manufacturer", _deviceInfo.HardwareManufacturer},
+                            {"model", _deviceInfo.HardwareModel},
+                            {"android_version", androidVersion.VersionNumber},
+                            {"android_release", androidVersion.APILevel}
+                        }
+                    },
+                    {
+                        "extra", new JObject
+                        {
+                            {"source_width", video.Width},
+                            {"source_height", video.Height}
+                        }
+                    },
+                    {"_csrftoken", _user.CsrfToken},
+                    { "_uuid", _deviceInfo.DeviceGuid.ToString()},
+                    {"_uid", _user.LoggedInUder.Pk},
                     {"configure_mode", 1},
-                    {"camera_position", "unknown"}
+                    {"story_media_creation_date", currentTime - numberGenerator.Next(10, 20) },
+                    {"client_shared_at", currentTime - numberGenerator.Next(3, 10) },
+                    {"client_timestamp", currentTime },
+                  //  {"caption", caption}
                 };
 
                 //string configure = $"{{\"caption\":\"{caption}\",\"upload_id\":\"{uploadId}\",\"source_type\":\"3\", \"camera_position\":\"unknown\",\"extra\":{{\"source_width\":1280,\"source_height\":720}},\"clips\":[{{\"length\":10.0,\"creation_date\" :\"2016-04-09T19:03:32-0700\",\"source_type\":\"3\",\"camera_position\":\"back\"}}],\"poster_frame_index\":0,\"audio_muted\":false,\"filter_type\":\"0\",\"video_result\":\"deprecated\",\"_csrftoken\":\"{_user.CsrfToken}\",\"_uuid\":\"{uuId}\",\"_uid\":\"{_user.LoggedInUder.Pk}\"}}";

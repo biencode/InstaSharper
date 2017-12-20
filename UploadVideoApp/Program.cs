@@ -32,7 +32,8 @@ namespace UploadVideoApp
             // http://techslides.com/demos/sample-videos/small.mp4
 
             var video = new InstaVideo("http://techslides.com/demos/sample-videos/small.mp4", 600, 600, 2);
-            var result = await instaApi.UploadStoryVideoAsync(video, "cool video");
+            var thumbnail = new InstaImage("D:\\gold_car.jpg", 1080, 1080);
+            var result = await instaApi.UploadStoryVideoAsync(video, thumbnail, "cool video");
             //var image = new InstaImage("D:\\gold_car.jpg", 1080, 1080);
             //var result = await instaApi.UploadStoryPhotoAsync(image, "This is my car");
         }

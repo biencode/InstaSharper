@@ -321,7 +321,7 @@ namespace InstaSharper.API
         /// <param name="video">video to uplaod</param>
         /// <param name="caption">Caption</param>
         /// <returns></returns>
-        Task<IResult<InstaStoryMedia>> UploadStoryVideoAsync(InstaVideo video, string caption);
+        Task<IResult<InstaStoryMedia>> UploadStoryVideoAsync(InstaVideo video, InstaImage thumbnail, string caption);
 
         /// <summary>
         /// Configure story video
