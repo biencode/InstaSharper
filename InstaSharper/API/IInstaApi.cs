@@ -330,7 +330,7 @@ namespace InstaSharper.API
         /// <param name="uploadId">Upload id </param>
         /// <param name="caption">Caption</param>
         /// <returns></returns>
-        IResult<InstaStoryMedia> ConfigureStoryVideoAsync(InstaVideo video, string uploadId, string caption);
+        Task<IResult<InstaStoryMedia>> ConfigureStoryVideoAsync(InstaVideo video, string uploadId, string caption);
 
         /// <summary>
         ///     Change password

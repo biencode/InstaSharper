@@ -322,6 +322,13 @@ namespace InstaSharper.Helpers
             return instaUri;
         }
 
+        public static Uri GetStoryVideoConfigureUri()
+        {
+            if (!Uri.TryCreate(BaseInstagramUri, InstaApiConstants.STORY_VIDEO_CONFIGURE, out var instaUri))
+                throw new Exception("Can't create URI for configuring story video");
+            return instaUri;
+        }
+
         public static Uri GetChangePasswordUri()
         {
             if (!Uri.TryCreate(BaseInstagramUri, InstaApiConstants.CHANGE_PASSWORD, out var instaUri))

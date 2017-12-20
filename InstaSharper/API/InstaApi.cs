@@ -1470,12 +1470,63 @@ namespace InstaSharper.API
                 return Result.Fail(exception.Message, (InstaStoryMedia)null);
             }
 
-            return ConfigureStoryVideoAsync(video, uploadId, caption);
+            
+            return await ConfigureStoryVideoAsync(video, uploadId, caption);
         }
 
-        public IResult<InstaStoryMedia> ConfigureStoryVideoAsync(InstaVideo video, string uploadId, string caption)
+        public async Task<IResult<InstaStoryMedia>> ConfigureStoryVideoAsync(InstaVideo video, string uploadId, string caption)
         {
-            return Result.Fail("", (InstaStoryMedia)null);
+            ValidateUser();
+            ValidateLoggedIn();
+            try
+            {
+                var instaUri = UriCreator.GetStoryVideoConfigureUri();
+                var data = new JObject
+                {
+                    {"_uuid", _deviceInfo.DeviceGuid.ToString()},
+                    {"_uid", _user.LoggedInUder.Pk},
+                    {"_csrftoken", _user.CsrfToken},
+                    {"source_type", "4"},
+                    {"caption", caption},
+                    {"upload_id", uploadId},
+                    {"edits", new JObject()},
+                    {"disable_comments", false},
+                    {"configure_mode", 1},
+                    {"camera_position", "unknown"}
+                };
+
+                //string configure = $"{{\"caption\":\"{caption}\",\"upload_id\":\"{uploadId}\",\"source_type\":\"3\", \"camera_position\":\"unknown\",\"extra\":{{\"source_width\":1280,\"source_height\":720}},\"clips\":[{{\"length\":10.0,\"creation_date\" :\"2016-04-09T19:03:32-0700\",\"source_type\":\"3\",\"camera_position\":\"back\"}}],\"poster_frame_index\":0,\"audio_muted\":false,\"filter_type\":\"0\",\"video_result\":\"deprecated\",\"_csrftoken\":\"{_user.CsrfToken}\",\"_uuid\":\"{uuId}\",\"_uid\":\"{_user.LoggedInUder.Pk}\"}}";
+                //var signature = $"{_httpRequestProcessor.RequestMessage.GenerateSignature(configure)}.{_httpRequestProcessor.RequestMessage.GetMessageString()}";
+                //byte[] signed = Encoding.UTF8.GetBytes("signed_body=" + Uri.EscapeDataString(signature + "." + configure) + "&ig_sig_key_version=4");
+
+                //Uri uri = new Uri("https://media/configure/?video=1");
+
+                //HttpWebRequest configureRequest = (HttpWebRequest)WebRequest.Create(uri);
+                //configureRequest.Method = "POST";
+                //configureRequest.UserAgent = InstaApiConstants.USER_AGENT;
+                //configureRequest.Host = "i.instagram.com";
+                //configureRequest.Accept = "*/*";
+                //configureRequest.CookieContainer = new CookieContainer();
+                //configureRequest.CookieContainer.Add(uri, _httpRequestProcessor.HttpHandler.CookieContainer.GetCookies(uri));
+                //configureRequest.ContentLength = signed.Length;
+
+                var request = HttpHelper.GetSignedRequest(HttpMethod.Post, instaUri, _deviceInfo, data);
+                var response = await _httpRequestProcessor.SendAsync(request);
+                var json = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    var mediaResponse = JsonConvert.DeserializeObject<InstaStoryMediaResponse>(json);
+                    var converter = ConvertersFabric.GetStoryMediaConverter(mediaResponse);
+                    return Result.Success(converter.Convert());
+                }
+
+                return Result.UnExpectedResponse<InstaStoryMedia>(response, json);
+            }
+            catch (Exception exception)
+            {
+                LogException(exception);
+                return Result.Fail(exception.Message, (InstaStoryMedia)null);
+            }
         }
 
         public async Task<IResult<bool>> ChangePasswordAsync(string oldPassword, string newPassword)
