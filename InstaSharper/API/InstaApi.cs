@@ -156,7 +156,7 @@ namespace InstaSharper.API
             }
             catch (Exception exception)
             {
-                return Result.Fail(exception.Message, (InsteReelFeed) null);
+                return Result.Fail(exception.Message, (InsteReelFeed)null);
             }
         }
 
@@ -194,7 +194,7 @@ namespace InstaSharper.API
                 var request = HttpHelper.GetDefaultRequest(HttpMethod.Get, exploreUri, _deviceInfo);
                 var response = await _httpRequestProcessor.SendAsync(request);
                 var json = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaExploreFeed) null);
+                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaExploreFeed)null);
                 var feedResponse = JsonConvert.DeserializeObject<InstaExploreFeedResponse>(json,
                     new InstaExploreFeedDataConverter());
                 var exploreFeed = ConvertersFabric.GetExploreFeedConverter(feedResponse).Convert();
@@ -217,7 +217,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaExploreFeed) null);
+                return Result.Fail(exception.Message, (InstaExploreFeed)null);
             }
         }
 
@@ -384,7 +384,7 @@ namespace InstaSharper.API
                 var followers = new InstaUserShortList();
                 var followersResponse = await GetUserListByURIAsync(userFollowersUri);
                 if (!followersResponse.Succeeded)
-                    Result.Fail(followersResponse.Info, (InstaUserList) null);
+                    Result.Fail(followersResponse.Info, (InstaUserList)null);
                 followers.AddRange(
                     followersResponse.Value.Items.Select(ConvertersFabric.GetUserShortConverter)
                         .Select(converter => converter.Convert()));
@@ -409,7 +409,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaUserShortList) null);
+                return Result.Fail(exception.Message, (InstaUserShortList)null);
             }
         }
 
@@ -450,7 +450,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaUserShortList) null);
+                return Result.Fail(exception.Message, (InstaUserShortList)null);
             }
         }
 
@@ -470,13 +470,13 @@ namespace InstaSharper.API
                 if (maxPages == 0) maxPages = int.MaxValue;
                 var user = await GetUserAsync(username);
                 if (!user.Succeeded || string.IsNullOrEmpty(user.Value.Pk))
-                    return Result.Fail($"Unable to get user {username}", (InstaMediaList) null);
+                    return Result.Fail($"Unable to get user {username}", (InstaMediaList)null);
                 var uri = UriCreator.GetUserTagsUri(user.Value?.Pk, _user.RankToken);
                 var request = HttpHelper.GetDefaultRequest(HttpMethod.Get, uri, _deviceInfo);
                 var response = await _httpRequestProcessor.SendAsync(request);
                 var json = await response.Content.ReadAsStringAsync();
                 var userTags = new InstaMediaList();
-                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaMediaList) null);
+                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaMediaList)null);
                 var mediaResponse = JsonConvert.DeserializeObject<InstaMediaListResponse>(json,
                     new InstaMediaListDataConverter());
                 var nextId = mediaResponse.NextMaxId;
@@ -501,7 +501,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaMediaList) null);
+                return Result.Fail(exception.Message, (InstaMediaList)null);
             }
         }
 
@@ -516,7 +516,7 @@ namespace InstaSharper.API
                 var request = HttpHelper.GetDefaultRequest(HttpMethod.Get, directInboxUri, _deviceInfo);
                 var response = await _httpRequestProcessor.SendAsync(request);
                 var json = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaDirectInboxContainer) null);
+                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaDirectInboxContainer)null);
                 var inboxResponse = JsonConvert.DeserializeObject<InstaDirectInboxContainerResponse>(json);
                 var converter = ConvertersFabric.GetDirectInboxConverter(inboxResponse);
                 return Result.Success(converter.Convert());
@@ -538,7 +538,7 @@ namespace InstaSharper.API
                 var request = HttpHelper.GetDefaultRequest(HttpMethod.Get, directInboxUri, _deviceInfo);
                 var response = await _httpRequestProcessor.SendAsync(request);
                 var json = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaDirectInboxThread) null);
+                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaDirectInboxThread)null);
                 var threadResponse = JsonConvert.DeserializeObject<InstaDirectInboxThreadResponse>(json,
                     new InstaThreadDataConverter());
                 var converter = ConvertersFabric.GetDirectThreadConverter(threadResponse);
@@ -561,7 +561,7 @@ namespace InstaSharper.API
 
                 var request = HttpHelper.GetDefaultRequest(HttpMethod.Post, directSendMessageUri, _deviceInfo);
 
-                var fields = new Dictionary<string, string> {{"text", text}};
+                var fields = new Dictionary<string, string> { { "text", text } };
 
                 if (!string.IsNullOrEmpty(recipients))
                     fields.Add("recipient_users", "[[" + recipients + "]]");
@@ -690,7 +690,7 @@ namespace InstaSharper.API
                 var response = await _httpRequestProcessor.SendAsync(request);
                 var json = await response.Content.ReadAsStringAsync();
                 if (response.StatusCode != HttpStatusCode.OK)
-                    return Result.Fail($"Unexpected response status: {response.StatusCode}", (InstaCommentList) null);
+                    return Result.Fail($"Unexpected response status: {response.StatusCode}", (InstaCommentList)null);
                 var commentListResponse = JsonConvert.DeserializeObject<InstaCommentListResponse>(json);
                 var converter = ConvertersFabric.GetCommentListConverter(commentListResponse);
                 var instaComments = converter.Convert();
@@ -795,7 +795,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaUserShort) null);
+                return Result.Fail(exception.Message, (InstaUserShort)null);
             }
         }
 
@@ -837,7 +837,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaUserShort) null);
+                return Result.Fail(exception.Message, (InstaUserShort)null);
             }
         }
 
@@ -875,7 +875,7 @@ namespace InstaSharper.API
             }
             catch (Exception exception)
             {
-                return Result.Fail(exception.Message, (InstaComment) null);
+                return Result.Fail(exception.Message, (InstaComment)null);
             }
         }
 
@@ -938,7 +938,7 @@ namespace InstaSharper.API
             }
             catch (Exception exception)
             {
-                return Result.Fail(exception.Message, (InstaMedia) null);
+                return Result.Fail(exception.Message, (InstaMedia)null);
             }
         }
 
@@ -952,7 +952,7 @@ namespace InstaSharper.API
                 var androidVersion =
                     AndroidVersion.FromString(_deviceInfo.FirmwareFingerprint.Split('/')[2].Split(':')[1]);
                 if (androidVersion == null)
-                    return Result.Fail("Unsupported android version", (InstaMedia) null);
+                    return Result.Fail("Unsupported android version", (InstaMedia)null);
                 var data = new JObject
                 {
                     {"_uuid", _deviceInfo.DeviceGuid.ToString()},
@@ -1001,7 +1001,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaMedia) null);
+                return Result.Fail(exception.Message, (InstaMedia)null);
             }
         }
 
@@ -1017,7 +1017,7 @@ namespace InstaSharper.API
                 var request = HttpHelper.GetDefaultRequest(HttpMethod.Get, storyFeedUri, _deviceInfo);
                 var response = await _httpRequestProcessor.SendAsync(request);
                 var json = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaStoryFeed) null);
+                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaStoryFeed)null);
                 var storyFeedResponse = JsonConvert.DeserializeObject<InstaStoryFeedResponse>(json);
                 var instaStoryFeed = ConvertersFabric.GetStoryFeedConverter(storyFeedResponse).Convert();
                 return Result.Success(instaStoryFeed);
@@ -1025,7 +1025,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaStoryFeed) null);
+                return Result.Fail(exception.Message, (InstaStoryFeed)null);
             }
         }
 
@@ -1041,7 +1041,7 @@ namespace InstaSharper.API
                 var response = await _httpRequestProcessor.SendAsync(request);
                 var json = await response.Content.ReadAsStringAsync();
 
-                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaStory) null);
+                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaStory)null);
                 var userStory = new InstaStory();
                 var userStoryResponse = JsonConvert.DeserializeObject<InstaStoryResponse>(json);
 
@@ -1052,7 +1052,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaStory) null);
+                return Result.Fail(exception.Message, (InstaStory)null);
             }
         }
 
@@ -1088,7 +1088,7 @@ namespace InstaSharper.API
             }
             catch (Exception exception)
             {
-                return Result.Fail(exception.Message, (InstaStoryMedia) null);
+                return Result.Fail(exception.Message, (InstaStoryMedia)null);
             }
         }
 
@@ -1127,19 +1127,82 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaStoryMedia) null);
+                return Result.Fail(exception.Message, (InstaStoryMedia)null);
             }
         }
 
-        public async Task<IResult<InstaMedia>> UploadTimelineVideoAsync(InstaVideo video, InstaImage thumbnail, string caption)
+        //public int _getVideoDurationMs()
+        //{
+        //    Buffer buffer;
+        //    var start = buffer.indexOf(new Buffer('mvhd')) + 17;
+        //    var timeScale = buffer.readUInt32BE(start, 4);
+        //    var duration = buffer.readUInt32BE(start + 4, 4);
+        //    var movieLength = duration / timeScale;
+
+        //    return movieLength * 1000;
+        //}
+        public int getVideoDuration(byte[] buffer)
+        {
+            //  var buffer = new byte[] { 33, 49, 0, 32, 0, 0, 0, 0, 2, 230, 69, 56, 0, 1, 125, 181, 99, 99, 136, 122, 92, 1, 99, 196, 231, 90, 205, 20, 75, 233, 5, 103 };
+            var start = Array.IndexOf(buffer, "mvhd") + 17;
+            string result = System.Text.Encoding.UTF8.GetString(buffer);
+            var timeScale = Array.IndexOf(buffer, "mvhd") + 17;
+            var value = BitConverter.ToUInt32(buffer, start);
+            var rs = BitConverter.ToUInt32(BitConverter.GetBytes(value).Reverse().ToArray(), 0);
+            return 63000;
+        }
+
+        //        private void _sendChunkedRequest(session, url, job, sessionId, buffer, range, isSidecar)
+        //        {
+        //            var headers = {
+        //        'job': job,
+        //        'Host': 'upload.instagram.com',
+        //        'Session-ID': sessionId,
+        //        'Content-Type': 'application/octet-stream',
+        //        'Content-Disposition': 'attachment; filename=\\\"video.mov\\\"',
+        //        'Content-Length': buffer.length,
+        //        'Content-Range': range
+        //    };
+        //    if(isSidecar) {
+        //        headers['Cookie'] = 'sessionid=' + sessionId;
+        //    }
+        //    return new Request(session)
+        //        .setMethod('POST')
+        //        .setBodyType('body')
+        //        .setUrl(url)
+        //        .generateUUID()
+        //        .setHeaders(headers)
+        //        .transform(function(opts){
+        //        opts.body = buffer;
+        //        return opts;
+        //    })
+        //        .send()
+        //}
+
+        private string _generateSessionId(string uploadId)
+        {
+            var text = (uploadId ?? "") + '-';
+            var possible = "0123456789";
+
+            var random = new Random();
+            for (var i = 0; i < 9; i++)
+                text += possible[(random.Next(0, 9))];
+
+            return text;
+        }
+
+        public async Task<IResult<InstaMedia>> UploadVideoAsync(InstaVideo video, string caption)
         {
             ValidateUser();
             ValidateLoggedIn();
+
             string uploadId = ApiRequestMessage.GenerateUploadId();
             string uuId = _deviceInfo.DeviceGuid.ToString();
             var webClient = new WebClient();
             byte[] videoData = webClient.DownloadData(video.Url);
+            var videoDuration = getVideoDuration(videoData);
             Uri uploadVideoUri = UriCreator.GetUploadVideoUri();
+
 
             var requestContent = new MultipartFormDataContent(uploadId)
             {
@@ -1179,18 +1242,27 @@ namespace InstaSharper.API
                         throw new ArgumentNullException();
                     }
 
-                    string url = urls[3].url;
-                    string job = urls[3].job;
-                    string sessionId = GenerateSessionId(uploadId);
 
-                    long chunk = Convert.ToInt64(Math.Floor(videoData.Length / 4.0));
-                    long last = (videoData.Length - (chunk * 4));
+                    //long chunk = Convert.ToInt64(Math.Floor(videoData.Length / 4.0));
+                    int chunk = 204800;
+                    long last = (videoData.Length - (chunk * 2));
                     List<byte> data = videoData.ToList();
+                    var sessionId = _generateSessionId(uploadId);
+                    
+                    //var chunks = [];
+                    //chunks.push({
+                    //    data: buffer.slice(0, chunkLength),
+                    //range: 'bytes ' + 0 + '-' + (chunkLength - 1) + '/' + buffer.length
+                    //});
+                    //chunks.push({
+                    //    data: buffer.slice(chunkLength, buffer.length),
+                    //range: 'bytes ' + chunkLength + '-' + (buffer.length - 1) + '/' + buffer.length
+                    //});
 
-                    for (int i = 0; i < 4; i++)
+                    for (int i = 0; i < 2; i++)
                     {
                         long start = (i * chunk);
-                        long end = ((i + 1) * chunk) + ((i == 3) ? last : 0);
+                        long end = ((i + 1) * chunk) + ((i == 1) ? last : 0);
 
                         #region Upload chunk
 
@@ -1198,11 +1270,21 @@ namespace InstaSharper.API
 
                         var uploadChunkRequestContent = new MultipartFormDataContent(sessionId)
                         {
+                            {new StringContent("$Version=1"), "\"Cookie2\""},
                             {new StringContent(sessionId), "\"Session-ID\""},
-                            {new StringContent(job),"\"job\""}
+                            {new StringContent((string)urls[i].job),"\"job\""}
                         };
+//var headers = new[] {
+//        'job': job,
+//        'Host': 'upload.instagram.com',
+//        'Session-ID': sessionId,
+//        'Content-Type': 'application/octet-stream',
+//        'Content-Disposition': 'attachment; filename=\\\"video.mov\\\"',
+//        'Content-Length': buffer.length,
+//        'Content-Range': range
+//    };
 
-                        byte[] chunkData = data.GetRange((int)start, (int)(end - start)).ToArray();
+                    byte[] chunkData = data.GetRange((int)start, (int)(end - start)).ToArray();
                         var chunkContent = new ByteArrayContent(chunkData);
                         chunkContent.Headers.Add("Content-Transfer-Encoding", "binary");
                         chunkContent.Headers.Add("Content-Type", "application/octet-stream");
@@ -1213,6 +1295,7 @@ namespace InstaSharper.API
                         uploadChunkRequest.Content = uploadChunkRequestContent;
                         var uploadChunkResponse = await _httpRequestProcessor.SendAsync(uploadChunkRequest);
                         var result = await uploadChunkResponse.Content.ReadAsStringAsync();
+                        //{ delay: '6500', durationms: 15079, uploadId: '1513960887281' }
                         if (uploadChunkResponse.IsSuccessStatusCode)
                         {
                             continue;
@@ -1425,17 +1508,28 @@ namespace InstaSharper.API
                         throw new ArgumentNullException();
                     }
 
-                    string url = urls[3].url;
-                    string job = urls[3].job;
 
-                    long chunk = Convert.ToInt64(Math.Floor(videoData.Length / 4.0));
-                    long last = (videoData.Length - (chunk * 4));
+                    //long chunk = Convert.ToInt64(Math.Floor(videoData.Length / 4.0));
+                    int chunk = 204800;
+                    long last = (videoData.Length - (chunk * 2));
                     List<byte> data = videoData.ToList();
+                    var sessionId = _generateSessionId(uploadId);
 
-                    for (int i = 0; i < 4; i++)
+                    //var chunks = [];
+                    //chunks.push({
+                    //    data: buffer.slice(0, chunkLength),
+                    //range: 'bytes ' + 0 + '-' + (chunkLength - 1) + '/' + buffer.length
+                    //});
+                    //chunks.push({
+                    //    data: buffer.slice(chunkLength, buffer.length),
+                    //range: 'bytes ' + chunkLength + '-' + (buffer.length - 1) + '/' + buffer.length
+                    //});
+
+                    for (int i = 0; i < 2; i++)
                     {
                         long start = (i * chunk);
-                        long end = ((i + 1) * chunk) + ((i == 3) ? last : 0);
+
+                        long end = ((i + 1) * chunk) + ((i == 1) ? last : 0);
 
                         #region Upload chunk
 
@@ -1443,26 +1537,39 @@ namespace InstaSharper.API
 
                         var uploadChunkRequestContent = new MultipartFormDataContent(uploadId)
                         {
-                            {new StringContent(uploadId), "\"Session-ID\""},
+                            {new StringContent("upload.instagram.com"), "\"Host\""},
+                            {new StringContent(sessionId), "\"Session-ID\""},
                             {new StringContent(job),"\"job\""}
                         };
+                        //var headers = new[] {
+                        //        'job': job,
+                        //        'c': 'upload.instagram.com',
+                        //        'Session-ID': sessionId,
+                        //        'Content-Type': 'application/octet-stream',
+                        //        'Content-Disposition': 'attachment; filename=\\\"video.mov\\\"',
+                        //        'Content-Length': buffer.length,
+                        //        'Content-Range': range
+                        //    };
 
                         byte[] chunkData = data.GetRange((int)start, (int)(end - start)).ToArray();
                         var chunkContent = new ByteArrayContent(chunkData);
                         chunkContent.Headers.Add("Content-Transfer-Encoding", "binary");
                         chunkContent.Headers.Add("Content-Type", "application/octet-stream");
+//                        chunkContent.Headers.Add("Host", "upload.instagram.com");
                         chunkContent.Headers.Add("Content-Length", (end - start).ToString());
+                        chunkContent.Headers.Add("Content-Disposition", "attachment; filename=\"video.MOV\"");
                         chunkContent.Headers.Add("Content-Range", $"bytes {start}-{end - 1}/{videoData.Length}");
-                        uploadChunkRequestContent.Add(chunkContent, "video", $"pending_media_{uploadId}.mp4");
+
+                        uploadChunkRequestContent.Add(chunkContent, "testvideo2", $"pending_media_{ApiRequestMessage.GenerateUploadId()}.mov");
                         var uploadChunkRequest = HttpHelper.GetDefaultRequest(HttpMethod.Post, chunkUri, _deviceInfo);
                         uploadChunkRequest.Content = uploadChunkRequestContent;
                         var uploadChunkResponse = await _httpRequestProcessor.SendAsync(uploadChunkRequest);
                         var result = await uploadChunkResponse.Content.ReadAsStringAsync();
+                        //{ delay: '6500', durationms: 15079, uploadId: '1513960887281' }
                         if (uploadChunkResponse.IsSuccessStatusCode)
                         {
                             continue;
                         }
-
                         return Result.UnExpectedResponse<InstaStoryMedia>(uploadChunkResponse, result);
                         #endregion
                     }
@@ -1520,7 +1627,7 @@ namespace InstaSharper.API
                     var converter = ConvertersFabric.GetSingleMediaConverter(mediaResponse);
                     return Result.Success(converter.Convert());
                 }
-                  
+
                 return Result.UnExpectedResponse<InstaMedia>(response, json);
             }
             catch (Exception exception)
@@ -1811,7 +1918,7 @@ namespace InstaSharper.API
             if (!Uri.TryCreate(new Uri(InstaApiConstants.INSTAGRAM_URL), InstaApiConstants.TIMELINEFEED,
                 out var instaUri))
                 throw new Exception("Cant create search user URI");
-            var userUriBuilder = new UriBuilder(instaUri) {Query = $"max_id={maxId}"};
+            var userUriBuilder = new UriBuilder(instaUri) { Query = $"max_id={maxId}" };
             var request = HttpHelper.GetDefaultRequest(HttpMethod.Get, userUriBuilder.Uri, _deviceInfo);
             request.Properties.Add(new KeyValuePair<string, object>(InstaApiConstants.HEADER_PHONE_ID,
                 _httpRequestProcessor.RequestMessage.phone_id));
@@ -1854,7 +1961,7 @@ namespace InstaSharper.API
                     new InstaMediaListDataConverter());
                 return Result.Success(mediaResponse);
             }
-            return Result.Fail("", (InstaMediaListResponse) null);
+            return Result.Fail("", (InstaMediaListResponse)null);
         }
 
         private async Task<IResult<InstaUserListShortResponse>> GetUserListByURIAsync(Uri uri)
@@ -1869,7 +1976,7 @@ namespace InstaSharper.API
                 if (response.StatusCode == HttpStatusCode.OK)
                 {
                     var instaUserListResponse = JsonConvert.DeserializeObject<InstaUserListShortResponse>(json);
-                    if (!instaUserListResponse.IsOk()) Result.Fail("", (InstaUserListShortResponse) null);
+                    if (!instaUserListResponse.IsOk()) Result.Fail("", (InstaUserListShortResponse)null);
                     return Result.Success(instaUserListResponse);
                 }
                 return Result.UnExpectedResponse<InstaUserListShortResponse>(response, json);
@@ -1877,7 +1984,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaUserListShortResponse) null);
+                return Result.Fail(exception.Message, (InstaUserListShortResponse)null);
             }
         }
 
@@ -1922,7 +2029,7 @@ namespace InstaSharper.API
             try
             {
                 var instaUri = UriCreator.GetTagFeedUri(tag);
-                instaUri = new UriBuilder(instaUri) {Query = $"max_id={nextId}"}.Uri;
+                instaUri = new UriBuilder(instaUri) { Query = $"max_id={nextId}" }.Uri;
                 var request = HttpHelper.GetDefaultRequest(HttpMethod.Get, instaUri, _deviceInfo);
                 var response = await _httpRequestProcessor.SendAsync(request);
                 var json = await response.Content.ReadAsStringAsync();
@@ -1936,7 +2043,7 @@ namespace InstaSharper.API
             }
             catch (Exception exception)
             {
-                return Result.Fail(exception.Message, (InstaMediaListResponse) null);
+                return Result.Fail(exception.Message, (InstaMediaListResponse)null);
             }
         }
 
@@ -1944,7 +2051,7 @@ namespace InstaSharper.API
             string nextId)
         {
             var commentsUri = UriCreator.GetMediaCommentsUri(mediaId);
-            var commentsUriMaxId = new UriBuilder(commentsUri) {Query = $"max_id={nextId}"}.Uri;
+            var commentsUriMaxId = new UriBuilder(commentsUri) { Query = $"max_id={nextId}" }.Uri;
             var request = HttpHelper.GetDefaultRequest(HttpMethod.Get, commentsUriMaxId, _deviceInfo);
             var response = await _httpRequestProcessor.SendAsync(request);
             var json = await response.Content.ReadAsStringAsync();
@@ -1953,7 +2060,7 @@ namespace InstaSharper.API
                 var comments = JsonConvert.DeserializeObject<InstaCommentListResponse>(json);
                 return Result.Success(comments);
             }
-            return Result.Fail("", (InstaCommentListResponse) null);
+            return Result.Fail("", (InstaCommentListResponse)null);
         }
 
         private async Task<IResult<InstaFriendshipStatus>> FollowUnfollowUserInternal(long userId, Uri instaUri)
@@ -1985,7 +2092,7 @@ namespace InstaSharper.API
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaFriendshipStatus) null);
+                return Result.Fail(exception.Message, (InstaFriendshipStatus)null);
             }
         }
 
@@ -1997,14 +2104,14 @@ namespace InstaSharper.API
                 var request = HttpHelper.GetDefaultRequest(HttpMethod.Get, exploreUri, _deviceInfo);
                 var response = await _httpRequestProcessor.SendAsync(request);
                 var json = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaExploreFeedResponse) null);
+                if (response.StatusCode != HttpStatusCode.OK) return Result.Fail("", (InstaExploreFeedResponse)null);
                 return Result.Success(
                     JsonConvert.DeserializeObject<InstaExploreFeedResponse>(json, new InstaExploreFeedDataConverter()));
             }
             catch (Exception exception)
             {
                 LogException(exception);
-                return Result.Fail(exception.Message, (InstaExploreFeedResponse) null);
+                return Result.Fail(exception.Message, (InstaExploreFeedResponse)null);
             }
         }
 
