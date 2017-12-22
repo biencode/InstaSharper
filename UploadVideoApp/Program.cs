@@ -19,7 +19,7 @@ namespace UploadVideoApp
 
             IInstaApi instaApi = InstaApiBuilder.CreateBuilder()
                             .SetUser(userSession)
-                            .SetRequestDelay(TimeSpan.FromSeconds(2)) // set delay between requests
+                            .SetRequestDelay(TimeSpan.FromSeconds(6.5)) // set delay between requests
                             .Build();
 
             var loggedIn = instaApi.LoginAsync().Result;
@@ -29,11 +29,13 @@ namespace UploadVideoApp
                 return;
             }
 
-            // http://techslides.com/demos/sample-videos/small.mp4
-
-            var video = new InstaVideo("http://techslides.com/demos/sample-videos/small.mp4", 600, 600, 2);
+            var video = new InstaVideo("https://static.videezy.com/system/resources/previews/000/000/206/original/Clouds%20(time%20lapse)%20[SaveYouTube.com].mp4", 720, 720, 2);
             var thumbnail = new InstaImage("D:\\gold_car.jpg", 1080, 1080);
-            var result = await instaApi.UploadStoryVideoAsync(video, thumbnail, "cool video");
+            var result = await instaApi.UploadTimelineVideoAsync(video, thumbnail, "cool video");
+
+            //var video = new InstaVideo("https://static.videezy.com/system/resources/previews/000/000/206/original/Clouds%20(time%20lapse)%20[SaveYouTube.com].mp4", 600, 600, 2);
+            //var thumbnail = new InstaImage("D:\\gold_car.jpg", 1080, 1080);
+            //var result = await instaApi.UploadStoryVideoAsync(video, thumbnail, "cool video");
             //var image = new InstaImage("D:\\gold_car.jpg", 1080, 1080);
             //var result = await instaApi.UploadStoryPhotoAsync(image, "This is my car");
         }

@@ -308,17 +308,26 @@ namespace InstaSharper.API
         Task<IResult<InstaStoryMedia>> ConfigureStoryPhotoAsync(InstaImage image, string uploadId, string caption);
 
         /// <summary>
-        /// Upload video to Instagram
+        /// Upload video to Instagram timeline
         /// </summary>
-        /// <param name="video">video to uplaod</param>
+        /// <param name="video">video to upload</param>
         /// <param name="caption">Caption</param>
         /// <returns></returns>
-        Task<IResult<InstaMedia>> UploadVideoAsync(InstaVideo video, string caption);
+        Task<IResult<InstaMedia>> UploadTimelineVideoAsync(InstaVideo video, InstaImage thumbnail, string caption);
+
+        /// <summary>
+        /// Configure timeline video
+        /// </summary>
+        /// <param name="video">video to configure</param>
+        /// <param name="uploadId">Upload id</param>
+        /// <param name="caption">Caption</param>
+        /// <returns></returns>
+        Task<IResult<InstaMedia>> ConfigureTimelineVideoAsync(InstaVideo video, string uploadId, string caption);
 
         /// <summary>
         /// Upload story video to Instagram
         /// </summary>
-        /// <param name="video">video to uplaod</param>
+        /// <param name="video">video to upload</param>
         /// <param name="caption">Caption</param>
         /// <returns></returns>
         Task<IResult<InstaStoryMedia>> UploadStoryVideoAsync(InstaVideo video, InstaImage thumbnail, string caption);
@@ -326,7 +335,7 @@ namespace InstaSharper.API
         /// <summary>
         /// Configure story video
         /// </summary>
-        /// <param name="video">Video to uplaod</param>
+        /// <param name="video">Video to configure</param>
         /// <param name="uploadId">Upload id </param>
         /// <param name="caption">Caption</param>
         /// <returns></returns>

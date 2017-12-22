@@ -85,6 +85,7 @@
         public const string GET_USER_STORY = API_SUFFIX + "/feed/user/{0}/reel_media/";
         public const string STORY_CONFIGURE = API_SUFFIX + "/media/configure_to_reel/";
         public const string STORY_VIDEO_CONFIGURE = API_SUFFIX + "/media/configure_to_story/?video=1";
+        public const string TIMELINE_VIDEO_CONFIGURE = API_SUFFIX + "/media/configure/?video=1";
         public const string LOCATION_SEARCH = API_SUFFIX + "/location_search/";
         public const string FRIENDSHIPSTATUS = API_SUFFIX + "/friendships/show/";
         public const string HEADER_USER_AGENT = "User-Agent";

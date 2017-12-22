@@ -1131,7 +1131,7 @@ namespace InstaSharper.API
             }
         }
 
-        public async Task<IResult<InstaMedia>> UploadVideoAsync(InstaVideo video, string caption)
+        public async Task<IResult<InstaMedia>> UploadTimelineVideoAsync(InstaVideo video, InstaImage thumbnail, string caption)
         {
             ValidateUser();
             ValidateLoggedIn();
@@ -1146,7 +1146,10 @@ namespace InstaSharper.API
                 {new StringContent(uploadId), "\"upload_id\""},
                 {new StringContent(_deviceInfo.DeviceGuid.ToString()), "\"_uuid\""},
                 {new StringContent(_user.CsrfToken), "\"_csrftoken\""},
-                {new StringContent(video.Type.ToString()),"\"media_type\""}
+                {new StringContent(video.Type.ToString()),"\"media_type\""},
+                {new StringContent("22400"),"\"upload_media_duration_ms\""},
+                {new StringContent(video.Height.ToString()),"\"upload_media_height\""},
+                {new StringContent(video.Width.ToString()),"\"upload_media_width\""},
             };
 
             var request = HttpHelper.GetDefaultRequest(HttpMethod.Post, uploadVideoUri, _deviceInfo);
@@ -1171,13 +1174,14 @@ namespace InstaSharper.API
                         throw new ArgumentNullException();
                     }
 
-                    // string url = urls[3].url.Replace("\\u0026", "&").Replace("\\", "");
-                    // string job = urls[3].job;
-
                     if (string.IsNullOrEmpty((string)urls[3].url) || string.IsNullOrEmpty((string)urls[3].job))
                     {
                         throw new ArgumentNullException();
                     }
+
+                    string url = urls[3].url;
+                    string job = urls[3].job;
+                    string sessionId = GenerateSessionId(uploadId);
 
                     long chunk = Convert.ToInt64(Math.Floor(videoData.Length / 4.0));
                     long last = (videoData.Length - (chunk * 4));
@@ -1186,18 +1190,16 @@ namespace InstaSharper.API
                     for (int i = 0; i < 4; i++)
                     {
                         long start = (i * chunk);
-
                         long end = ((i + 1) * chunk) + ((i == 3) ? last : 0);
 
                         #region Upload chunk
 
-                        Uri chunkUri = new Uri((string)urls[i].url);
+                        Uri chunkUri = new Uri(url);
 
-                        var uploadChunkRequestContent = new MultipartFormDataContent(uploadId)
+                        var uploadChunkRequestContent = new MultipartFormDataContent(sessionId)
                         {
-                            {new StringContent("$Version=1"), "\"Cookie2\""},
-                            {new StringContent(uploadId), "\"Session-ID\""},
-                            {new StringContent((string)urls[i].job),"\"job\""}
+                            {new StringContent(sessionId), "\"Session-ID\""},
+                            {new StringContent(job),"\"job\""}
                         };
 
                         byte[] chunkData = data.GetRange((int)start, (int)(end - start)).ToArray();
@@ -1205,9 +1207,8 @@ namespace InstaSharper.API
                         chunkContent.Headers.Add("Content-Transfer-Encoding", "binary");
                         chunkContent.Headers.Add("Content-Type", "application/octet-stream");
                         chunkContent.Headers.Add("Content-Length", (end - start).ToString());
-                        chunkContent.Headers.Add("Content-Disposition", "attachment; filename=\"testvideo2.mp4\"");
                         chunkContent.Headers.Add("Content-Range", $"bytes {start}-{end - 1}/{videoData.Length}");
-                        uploadChunkRequestContent.Add(chunkContent, "testvideo2", $"pending_media_{ApiRequestMessage.GenerateUploadId()}.mov");
+                        uploadChunkRequestContent.Add(chunkContent, "video", $"pending_media_{uploadId}.mp4");
                         var uploadChunkRequest = HttpHelper.GetDefaultRequest(HttpMethod.Post, chunkUri, _deviceInfo);
                         uploadChunkRequest.Content = uploadChunkRequestContent;
                         var uploadChunkResponse = await _httpRequestProcessor.SendAsync(uploadChunkRequest);
@@ -1218,38 +1219,10 @@ namespace InstaSharper.API
                         }
 
                         return Result.UnExpectedResponse<InstaMedia>(uploadChunkResponse, result);
-
-
-                        // HttpWebRequest chunk_request = (HttpWebRequest)WebRequest.Create(chunkUri);
-                        // chunk_request.Method = "POST";
-                        // chunk_request.Host = "upload.instagram.com";
-                        // chunk_request.Accept = "*/*";
-                        //  chunk_request.Headers.Add("Cookie2", "$Version=1");
-                        //chunk_request.ContentType = "application/octet-stream";
-                        //  chunk_request.ContentLength = end - start;
-                        // chunk_request.Headers.Add("Session-ID", uploadId);
-                        //  chunk_request.Headers.Add("Content-Disposition", "attachment; filename=\"child_video.mp4\"");
-                        // chunk_request.UserAgent = InstaApiConstants.USER_AGENT;
-                        //chunk_request.UseDefaultCredentials = true;
-                        //chunk_request.Headers.Add("Content-Range", $"bytes {start}-{end - 1}/{videoData.Length}");
-                        //chunk_request.Headers.Add("job", (string)urls[i].job);
-                        //chunk_request.AllowAutoRedirect = false;
-                        // chunk_request.CookieContainer = new CookieContainer();
-                        //chunk_request.CookieContainer.Add(chunkUri, _httpRequestProcessor.HttpHandler.CookieContainer.GetCookies(chunkUri));
-                        //chunk_request.KeepAlive = true;
-
-                        //byte[] chunkData = data.GetRange((int)start, (int)(end - start)).ToArray();
-
-                        //using (Stream chunk_stream = chunk_request.GetRequestStream())
-                        //{
-                        //    chunk_stream.Write(chunkData, 0, chunkData.Length);
-                        //}
-
-                        //HttpWebResponse chunk_response = (HttpWebResponse)chunk_request.GetResponse();
-
-                        //chunk_response.Close();
                         #endregion
                     }
+
+                    var uploadThumbnailResult = await UploadVideoThumbnail(thumbnail, uploadId);
                 }
             }
             catch (Exception exception)
@@ -1257,7 +1230,7 @@ namespace InstaSharper.API
                 return Result.Fail(exception.Message, (InstaMedia)null);
             }
 
-            return Result.Success("success", (InstaMedia)null);
+            return await ConfigureTimelineVideoAsync(video, uploadId, caption);
 
             // uplao9d preview
 
@@ -1298,36 +1271,88 @@ namespace InstaSharper.API
             //data += $"Content-Type: application/octet-stream\r\n";
             //data += $"Content-Transfer-Encoding: binary\r\n\r\n";
 
-            //byte[] begin_block = Encoding.UTF8.GetBytes(data);
+        }
 
-            //byte[] end_block = Encoding.UTF8.GetBytes($"\r\n--{uuid}--");
+        public async Task<IResult<InstaMedia>> ConfigureTimelineVideoAsync(InstaVideo video, string uploadId, string caption)
+        {
+            ValidateUser();
+            ValidateLoggedIn();
+            try
+            {
+                var instaUri = UriCreator.GetTimelineVideoConfigureUri();
+                int currentTime = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+                var androidVersion = AndroidVersion.FromString(_deviceInfo.FirmwareFingerprint.Split('/')[2].Split(':')[1]);
+                if (androidVersion == null)
+                {
+                    return Result.Fail("Unsupported android version", (InstaMedia)null);
+                }
 
-            //request.ContentLength = (begin_block.Length + previewData.Length + end_block.Length);
+                var data = new JObject
+                {
+                    {"_uuid", _deviceInfo.DeviceGuid.ToString()},
+                    {"_uid", _user.LoggedInUder.Pk},
+                    {"_csrftoken", _user.CsrfToken},
+                    { "video_result", "deprecated" },
+                    {"audio_muted", false },
+                    {"trim_type", 0},
+                    {"duration", 22.4},
+                    {"client_timestamp", currentTime.ToString().Substring(0,10)},
+                    {"caption", caption },
+                    {"source_type", "camera"},
+                    {"mas_opt_in", "NOT_PROMPTED" },
+                    {"length", 22.4},
+                    {"disable_comments", false },
+                    {"filter_type", 0},
+                    {"poster_frame_index", 0 },
+                    {"geotag_enabled", false },
+                    {"camera_position", "unknown"},
+                    {"upload_id", uploadId},
+                    {
+                        "device", new JObject
+                        {
+                            {"manufacturer", _deviceInfo.HardwareManufacturer},
+                            {"model", _deviceInfo.HardwareModel},
+                            {"android_version", androidVersion.VersionNumber},
+                            {"android_release", androidVersion.APILevel}
+                        }
+                    },
+                    {
+                        "edits", new JObject
+                        {
+                            {"filter_strength", 1}
+                        }
+                    },
+                    {
+                        "clips", new JArray{ new JObject
+                            {
+                                { "length", 22.4 },
+                                { "cinema", "unsupported" },
+                                { "original_length", 22.4 },
+                                { "source_type", "camera" },
+                                { "start_time", 0 },
+                                { "trim_type", 0 },
+                                { "camera_position", "back"}
+                            }}
+                    }
+                };
 
-            //try
-            //{
-            //    using (var stream = request.GetRequestStream())
-            //    {
-            //        stream.Write(begin_block, 0, begin_block.Length);
-            //        stream.Write(previewData, 0, previewData.Length);
-            //        stream.Write(end_block, 0, end_block.Length);
-            //    }
-            //}
-            //catch
-            //{
-            //    return null;
-            //}
+                var request = HttpHelper.GetSignedRequest(HttpMethod.Post, instaUri, _deviceInfo, data);
+                var response = await _httpRequestProcessor.SendAsync(request);
+                var json = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    var mediaResponse = JsonConvert.DeserializeObject<InstaMediaItemResponse>(json);
+                    var converter = ConvertersFabric.GetSingleMediaConverter(mediaResponse);
+                    return Result.Success(converter.Convert());
+                }
 
-            //try
-            //{
-            //    HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-
-            //    response.Close();
-            //}
-            //catch
-            //{
-            //    return null;
-            //}
+                return Result.UnExpectedResponse<InstaMedia>(response, json);
+            }
+            catch (Exception exception)
+            {
+                LogException(exception);
+                return Result.Fail(exception.Message, (InstaMedia)null);
+            }
 
             // configure video
 
@@ -1352,29 +1377,6 @@ namespace InstaSharper.API
             //    {
             //        stream.Write(signed, 0, signed.Length);
             //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    return ex.Message;
-            //}
-
-            //try
-            //{
-            //    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-            //    {
-            //        using (Stream stream = response.GetResponseStream())
-            //        {
-            //            using (StreamReader reader = new StreamReader(stream))
-            //            {
-            //                return reader.ReadToEnd();
-            //            }
-            //        }
-            //    }
-            //}
-            //catch (WebException e)
-            //{
-            //    var resp = new StreamReader(e.Response.GetResponseStream()).ReadToEnd();
-            //    return resp;
             //}
         }
 
@@ -1423,6 +1425,9 @@ namespace InstaSharper.API
                         throw new ArgumentNullException();
                     }
 
+                    string url = urls[3].url;
+                    string job = urls[3].job;
+
                     long chunk = Convert.ToInt64(Math.Floor(videoData.Length / 4.0));
                     long last = (videoData.Length - (chunk * 4));
                     List<byte> data = videoData.ToList();
@@ -1434,13 +1439,12 @@ namespace InstaSharper.API
 
                         #region Upload chunk
 
-                        Uri chunkUri = new Uri((string)urls[i].url);
+                        Uri chunkUri = new Uri(url);
 
                         var uploadChunkRequestContent = new MultipartFormDataContent(uploadId)
                         {
-                            {new StringContent("$Version=1"), "\"Cookie2\""},
                             {new StringContent(uploadId), "\"Session-ID\""},
-                            {new StringContent((string)urls[i].job),"\"job\""}
+                            {new StringContent(job),"\"job\""}
                         };
 
                         byte[] chunkData = data.GetRange((int)start, (int)(end - start)).ToArray();
@@ -1448,9 +1452,8 @@ namespace InstaSharper.API
                         chunkContent.Headers.Add("Content-Transfer-Encoding", "binary");
                         chunkContent.Headers.Add("Content-Type", "application/octet-stream");
                         chunkContent.Headers.Add("Content-Length", (end - start).ToString());
-                        chunkContent.Headers.Add("Content-Disposition", "attachment; filename=\"testvideo2.mp4\"");
                         chunkContent.Headers.Add("Content-Range", $"bytes {start}-{end - 1}/{videoData.Length}");
-                        uploadChunkRequestContent.Add(chunkContent, "testvideo2", $"pending_media_{uploadId}.mp4");
+                        uploadChunkRequestContent.Add(chunkContent, "video", $"pending_media_{uploadId}.mp4");
                         var uploadChunkRequest = HttpHelper.GetDefaultRequest(HttpMethod.Post, chunkUri, _deviceInfo);
                         uploadChunkRequest.Content = uploadChunkRequestContent;
                         var uploadChunkResponse = await _httpRequestProcessor.SendAsync(uploadChunkRequest);
@@ -1475,6 +1478,19 @@ namespace InstaSharper.API
             return await ConfigureStoryVideoAsync(video, uploadId, caption);
         }
 
+        private string GenerateSessionId(string uploadId)
+        {
+            var text = (uploadId ?? "") + '-';
+            var possible = "0123456789";
+
+            var random = new Random();
+            for (var i = 0; i < 9; i++)
+                text += possible[(random.Next(0, 9))];
+
+            return text;
+        }
+
+
         private async Task<IResult<InstaMedia>> UploadVideoThumbnail(InstaImage thumbnail, string uploadId)
         {
             try
@@ -1482,7 +1498,6 @@ namespace InstaSharper.API
                 var instaUri = UriCreator.GetUploadPhotoUri();
                 var requestContent = new MultipartFormDataContent(uploadId)
                 {
-                    {new StringContent("$Version=1"), "\"Cookie2\""},
                     {new StringContent(uploadId), "\"upload_id\""},
                     {new StringContent(_deviceInfo.DeviceGuid.ToString()), "\"_uuid\""},
                     {new StringContent(_user.CsrfToken), "\"_csrftoken\""},
@@ -1527,18 +1542,21 @@ namespace InstaSharper.API
                     return Result.Fail("Unsupported android version", (InstaStoryMedia)null);
                 }
 
-                double currentTime = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+                int currentTime = (int) (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
                 Random numberGenerator = new Random();
 
                 var data = new JObject
                 {
                     { "video_result", "deprecated"},
-                    {"upload_id", uploadId},
+                    { "upload_id", uploadId},
                     { "poster_frame_index", 0},
-                    { "length", 5 },
+                    { "length", 22 },
                     { "audio_muted", false },
                     { "filter_type", 0},
-                    { "source_type", 4},
+                    { "source_type", "4"},
+                    //{"edits", new JObject()},
+                    //{"disable_comments", false},
+                    //{"camera_position", "unknown"},
                     {
                         "device", new JObject
                         {
@@ -1994,7 +2012,6 @@ namespace InstaSharper.API
         {
             _logger?.LogException(exception);
         }
-
         #endregion
     }
 }
